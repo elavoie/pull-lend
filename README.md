@@ -68,8 +68,8 @@ The following signature follows the [js module signature
 syntax](https://github.com/elavoie/js-module-signature-syntax) and conventions.
 All callbacks ('cb') have the '(err, value)' signature.
 
-    lender: () =>
-    {
+    lend: () =>
+    lender: {
         sink: (read: (abort, cb)),
         lend: (borrower: (value, cb), ?lendCb: (err)),
         source: (abort, cb)
