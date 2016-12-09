@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/elavoie/pull-lend.svg?branch=master)](https://travis-ci.org/elavoie/pull-lend)
+
 Lends one value at a time from a stream. Re-lends in case of errors.
 
 A client borrows a value, processes it, and returns the result to the stream
