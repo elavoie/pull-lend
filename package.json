@@ -1,0 +1,34 @@
+{
+  "name": "pull-lend",
+  "version": "1.0.0",
+  "description": "Lends one value at a time from a stream. Re-lends in case of errors.",
+  "main": "src/index.js",
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elavoie/pull-lender.git"
+  },
+  "keywords": [
+    "pull-stream",
+    "dynamic",
+    "fault-tolerant"
+  ],
+  "author": "Erick Lavoie",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/elavoie/pull-lender/issues"
+  },
+  "homepage": "https://github.com/elavoie/pull-lender#readme",
+  "devDependencies": {
+    "pull-stream": "^3.5.0",
+    "tape": "^4.6.3"
+  },
+  "dependencies": {
+  }
+}
