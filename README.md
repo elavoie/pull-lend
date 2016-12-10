@@ -15,46 +15,46 @@ cooperative, but unreliable clients.
 Quick Example
 =============
 
-  var pull = require('pull-stream')
-  var lend = require('pull-lend')
+    var pull = require('pull-stream')
+    var lend = require('pull-lend')
 
-  var lender = lend()
+    var lender = lend()
 
-  function minus (err, x, cb) {
-    if (err) throw err
-    setTimeout(function () {
-      cb(null, -x)
-    }, 500)
-  }
-  
-  function square (err, x, cb) {
-    if (err) throw err
-    cb(null, x * x)
-  }
-  
-  function crash (err, x, cb) {
-    if (err) throw err
-    cb(true)
-  }
-  
-  // Prints 0,1,2,-0,-1,4
-  pull(
-    pull.count(2),
-    pull.through(console.log),
-    lender,
-    pull.through(console.log),
-    pull.drain()
-  )
-  
-  lender.lend(minus)
-  lender.lend(crash)
-  lender.lend(minus)
-  lender.lend(square)
-  
-  // Prints 'closed with: true'
-  lender.lend(function (err) {
-    if (err) console.log('closed with: ' + err)
-  })
+    function minus (err, x, cb) {
+      if (err) throw err
+      setTimeout(function () {
+        cb(null, -x)
+      }, 500)
+    }
+
+    function square (err, x, cb) {
+      if (err) throw err
+      cb(null, x * x)
+    }
+
+    function crash (err, x, cb) {
+      if (err) throw err
+      cb(true)
+    }
+
+    // Prints 0,1,2,-0,-1,4
+    pull(
+      pull.count(2),
+      pull.through(console.log),
+      lender,
+      pull.through(console.log),
+      pull.drain()
+    )
+
+    lender.lend(minus)
+    lender.lend(crash)
+    lender.lend(minus)
+    lender.lend(square)
+
+    // Prints 'closed with: true'
+    lender.lend(function (err) {
+      if (err) console.log('closed with: ' + err)
+    })
 
 Signature 
 =========
@@ -78,16 +78,15 @@ Properties
    imply a read).
 2. Multiple values may be lent concurrently by calling lend multiple times.
 3. Once lend has been called: 
-   (1) the borrower will eventually be called either with a value or an err;
-   (2) all borrowers will be called before the stream closes.
+   3.1 the borrower will eventually be called either with a value or an err;
+   3.2 all borrowers will be called before the stream closes.
 4. The source produces results in the order in which the values were read by
    the sink.
 5. If a borrower returns an error, its input value will be given to another
    borrower later.
 6. When the borrower is called, err is truthy iff:
-    (1) the lender is not connected yet;
-    (2) the lender was closed by the source;
-    (3) all available values have been borrowed and 
-        all results have been sourced.
+    6.1 the lender is not connected yet;
+    6.2 the lender was closed by the source;
+    6.3 all available values have been borrowed and  all results have been sourced.
 7. For N values available for borrowing, it takes N successful borrowers and 1
    extra lend call to close the lender.
