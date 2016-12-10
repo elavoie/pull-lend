@@ -1,112 +1,202 @@
+var debug = require('debug')
+
 module.exports = function () {
+  var log = debug('pull-lend')
   var reading = false
   var abort = false
 
-  var i = 0
-  var j = 0
+  var i = 0 // value read
+  var j = 0 // value sourced
   var last = 0
-  var seen = []
-  var ended = false
+  var seen = [] // buffer to reorder results
+  var ended = false // whether there are still values to read
   var _cb
-  var error
   var read
-  var delegated = []
-  var deferred = []
+  var delegated = [] // values delegated to another borrower
+  var deferred = [] // borrowers deferred to complete later
 
   function drain () {
+    log('drain')
+
     if (_cb) {
       var cb = _cb
-      if (error) {
-        _cb = null
-        return cb(error)
-      }
+      // Prop 4: Ensure the result are returned in the
+      // the values were read
       if (Object.hasOwnProperty.call(seen, j)) {
         _cb = null
         var result = seen[j]
         delete seen[j]; j++
         cb(null, result)
       } else if (j >= last && ended) {
+        // Prop 3:
+        // Prop 6.3: We are done sinking results,
+        // make sure there are no pending borrowers
+        processAllDeferred()
+
+        // Propagate closing event
         _cb = null
         cb(ended)
       }
     }
   }
 
-  function processDeferred () {
-    while (deferred.length > 0) {
-      var call = deferred.shift()
-      lend(call.mapper, call.cb)
+  function processOneDeferred () {
+    log('processOneDeferred')
+
+    if (deferred.length > 0) {
+      lend(deferred.shift())
     }
   }
 
-  function done (value, k) {
+  function processAllDeferred (abort) {
+    log('processAllDeferred(' + deferred.length + ')')
+
+    if (deferred.length > 0) {
+      var _deferred = deferred.slice(0)
+      deferred = []
+
+      if (abort) {
+        _deferred.forEach(function (borrower) {
+          borrower(abort)
+        })
+      } else {
+        _deferred.forEach(lend)
+      }
+    }
+  }
+
+  function result (value, k) {
     return function (err, result) {
+      log('result(' + err + (err ? '' : ',' + result) + ')')
+
       if (err) {
+        log('failed, delegating value ' + k + ': ' + value)
+
+        // Prop 5: the borrower failed, delegate the value
+        // to another borrower
         delegated.push({ value: value, k: k })
-        return
+        return processOneDeferred()
       }
 
+      log('received result ' + k + ': ' + result)
+
+      // Prop 4: buffer the result until we can source it
       seen[k] = result
       drain()
     }
   }
 
-  function lend (mapper, cb) {
-    if (!cb) cb = function () {}
-
+  function canBorrow (borrower) {
     if (!read) {
-      return cb(new Error('Stream is not connected yet'))
+      log('not connected')
+
+      // Prop 6.1: the lender is not connected yet
+      borrower(new Error('lender is not connected yet'))
+      return false
     }
 
-    if (ended) {
-      return cb(new Error('Stream is closed'))
-    }
+    if (ended && j >= last) {
+      log('closed')
 
-    if (delegated.length > 0) {
-      var job = delegated.shift()
-      cb(null)
-      mapper(job.value, done(job.value, job.k))
-      return
+      // Prop 6.3: all results have been sourced
+      borrower(true)
+      return false
     }
 
     // If currently busy reading a value,
     // defer until read is available
     if (reading) {
-      deferred.push({ mapper: mapper, cb: cb })
+      log('busy reading, deferring')
+
+      // Prop 3: ensure the borrower is eventually called back
+      deferred.push(borrower)
+      return false
     }
+
+    // Prop 3 :
+    // Prop 6.3:
+    // The source has no more values and some values are still being borrowed.
+    // The current borrowers may still fail and not produce results, so defer
+    if (ended && j < last) {
+      log('source has ended but not all results are in, deferring')
+
+      deferred.push(borrower)
+      return false
+    }
+
+    return true
+  }
+
+  function readSourceValue (borrower) {
+    log('reading')
 
     reading = true
     read(abort, function (end, value) {
       reading = false
+      log('reading done')
+
       if (end) {
+        log('source ended')
+
         last = i; ended = end
-        cb(end)
-        drain()
-      } else {
-        var k = i++
-        cb(null)
-        mapper(value, done(value, k))
+
+        // Prop 3:
+        // Prop 6.3: All results may not have been sourced,
+        // defer the borrower
+        deferred.push(borrower)
+
+        return drain()
       }
-      processDeferred()
+
+      var k = i++
+      log('lending value ' + k + ': ' + value)
+
+      borrower(null, value, result(value, k))
+
+      // Prop 3: Ensure all borrowers that called lend while
+      // we were reading are processed
+      processAllDeferred()
     })
   }
 
-  function source (_abort, cb) {
-    if (_abort) {
-      read(ended = abort = _abort, function (err) {
-        if (cb) return cb(err)
-      })
-    } else {
-      _cb = cb
-      drain()
+  function lend (borrower) {
+    log('lend([' + (typeof borrower) + '])')
+
+    if (!canBorrow(borrower)) return
+
+    // Prop 5: relend the value of a previously missing result
+    if (delegated.length > 0) {
+      var job = delegated.shift()
+      log('relending value ' + job.k + ': ' + job.value)
+      borrower(null, job.value, result(job.value, job.k))
+      return
     }
+
+    // Prop 1: read a new value, triggered by a lend
+    readSourceValue(borrower)
   }
 
   return {
     sink: function (_read) {
       read = _read
+      log('connected')
     },
     lend: lend,
-    source: source
+    source: function source (_abort, cb) {
+      log('source(' + _abort + ',[' + (typeof cb) + '])')
+
+      if (_abort) {
+        read(ended = abort = _abort, function (err) {
+          // Prop 6.2: The lender has been closed
+          // by the source
+          processAllDeferred(err)
+
+          if (cb) return cb(err)
+        })
+      }
+
+      _cb = cb
+      drain()
+    }
   }
 }
