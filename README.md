@@ -74,19 +74,19 @@ All callbacks ('cb') have the '(err, value)' signature.
 Properties 
 ==========
 
-1. Each read is first initiated by a lend (but each lend does not necessarily
+1. Each read is first initiated by a lend (but each lend does not necessarily 
    imply a read).
 2. Multiple values may be lent concurrently by calling lend multiple times.
-3. Once lend has been called: 
-   3.1 the borrower will eventually be called either with a value or an err;
-   3.2 all borrowers will be called before the stream closes.
+3. Once lend has been called:  
+  3.1 the borrower will eventually be called either with a value or an err;  
+  3.2 all borrowers will be called before the stream closes.
 4. The source produces results in the order in which the values were read by
    the sink.
 5. If a borrower returns an error, its input value will be given to another
    borrower later.
-6. When the borrower is called, err is truthy iff:
-    6.1 the lender is not connected yet;
-    6.2 the lender was closed by the source;
-    6.3 all available values have been borrowed and  all results have been sourced.
+6. When the borrower is called, err is truthy iff:  
+  6.1 the lender is not connected yet;  
+  6.2 the lender was closed by the source;  
+  6.3 all available values have been borrowed and  all results have been sourced.
 7. For N values available for borrowing, it takes N successful borrowers and 1
    extra lend call to close the lender.
