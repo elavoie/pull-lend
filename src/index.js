@@ -20,7 +20,7 @@ module.exports = function () {
 
     if (_cb) {
       var cb = _cb
-      // Prop 4: Ensure the result are returned in the
+      // Prop 4: Ensure the result are returned in the order
       // the values were read
       if (Object.hasOwnProperty.call(seen, j)) {
         _cb = null
@@ -28,13 +28,14 @@ module.exports = function () {
         delete seen[j]; j++
         cb(null, result)
       } else if (j >= last && ended) {
+        _cb = null
+
         // Prop 3:
         // Prop 6.3: We are done sinking results,
         // make sure there are no pending borrowers
         processAllDeferred()
 
         // Propagate closing event
-        _cb = null
         cb(ended)
       }
     }
@@ -193,6 +194,7 @@ module.exports = function () {
 
           if (cb) return cb(err)
         })
+        return
       }
 
       _cb = cb
