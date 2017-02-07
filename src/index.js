@@ -20,7 +20,7 @@ module.exports = function () {
 
     if (_cb) {
       var cb = _cb
-      // Prop 4: Ensure the result are returned in the order
+      // Prop 4: Ensure the results are returned in the order
       // the values were read
       if (Object.hasOwnProperty.call(seen, j)) {
         _cb = null
