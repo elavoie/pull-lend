@@ -117,9 +117,9 @@ module.exports = function () {
       return false
     }
 
-    // If currently busy reading a value,
-    // defer until read is available
-    if (reading) {
+    // If currently busy reading a value and no value is available,
+    // defer until read is available again
+    if (reading && delegated.length === 0) {
       log('busy reading, deferring')
 
       // Prop 3: ensure the borrower is eventually called back
