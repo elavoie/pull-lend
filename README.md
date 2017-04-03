@@ -9,7 +9,7 @@ later.
 
 * Supports multiple concurrent borrowers
 * Produces results in the order in which the sink reads the values
-* If a borrower returns an error rather than a result, the value is transparently   lent to another borrower, continuing until a result is returned
+* If a borrower returns an error rather than a result, the value is transparently lent to another borrower, continuing until a result is returned
 
 Useful for delegating processing to a dynamic number of concurrent,
 cooperative, but unreliable clients.
@@ -92,3 +92,34 @@ Properties
   6.3 all available values have been borrowed and  all results have been sourced.
 7. For N values available for borrowing, it takes N successful borrowers and 1
    extra lend call to close the lender.
+
+Debugging
+=========
+
+You can obtain a trace of the internal events of the module by activating the logging using the `DEBUG=pull-lend` environment variable (see [debug](http://npmjs.org/debug)).
+
+You can also obtain the internal state of the module at a specific point in time by calling the `_state()` method. It returns an object with the following properties:
+````
+    {
+      reading: Boolean,    // Currently reading a value from upstream
+      aborted: Boolean,    // Aborted from downstream
+      ended: Boolean,      // Upstream ended
+      last: Number,        // Last index of the stream (0 until ended = true)
+      readNb: Number,      // Number of values read from upstream
+      sourcedNb: Number,   // Number of values sourced downstream
+      lentNb: Number,      // Number of values lent that have not returned yet
+      pendingNb: Number,   // Number of values returned not yet sourced
+      delegatedNb: Number, // Number of values returned because of an error,
+                           // awaiting to be lent again
+      deferredNb: Number   // Number of borrowers waiting for a value
+    }
+
+````
+
+The module maintains the following invariant:
+
+````
+    readNb - sourcedNb = lentNb + pendingNb + delegatedNb
+````
+
+The output of the `_state()` method should not be relied on for regular operations because it depends on the implementation of the module and may change in the future.

@@ -14,6 +14,8 @@ module.exports = function () {
   var read
   var delegated = [] // values delegated to another borrower
   var deferred = [] // borrowers deferred to complete later
+  var lent = 0 // values lent not returned yet
+  var pending = 0 // values returned not yet sourced
 
   function drain () {
     log('drain')
@@ -26,6 +28,7 @@ module.exports = function () {
         _cb = null
         var result = seen[j]
         delete seen[j]; j++
+        pending--
         cb(null, result)
       } else if (j >= last && ended) {
         _cb = null
@@ -69,6 +72,7 @@ module.exports = function () {
   function result (value, k) {
     return function (err, result) {
       log('result(' + err + (err ? '' : ',' + result) + ')')
+      lent--
 
       if (err) {
         log('failed, delegating value ' + k + ': ' + value)
@@ -82,6 +86,7 @@ module.exports = function () {
       log('received result ' + k + ': ' + result)
 
       // Prop 4: buffer the result until we can source it
+      pending++
       seen[k] = result
       drain()
     }
@@ -151,7 +156,7 @@ module.exports = function () {
 
       var k = i++
       log('lending value ' + k + ': ' + value)
-
+      lent++
       borrower(null, value, result(value, k))
 
       // Prop 3: Ensure all borrowers that called lend while
@@ -169,12 +174,28 @@ module.exports = function () {
     if (delegated.length > 0) {
       var job = delegated.shift()
       log('relending value ' + job.k + ': ' + job.value)
+      lent++
       borrower(null, job.value, result(job.value, job.k))
       return
     }
 
     // Prop 1: read a new value, triggered by a lend
     readSourceValue(borrower)
+  }
+
+  function state () {
+    return {
+      reading: reading,
+      aborted: abort,
+      ended: ended,
+      last: last,
+      readNb: i,
+      sourcedNb: j,
+      lentNb: lent,
+      pendingNb: pending,
+      delegatedNb: delegated.length,
+      deferredNb: deferred.length
+    }
   }
 
   return {
@@ -199,6 +220,7 @@ module.exports = function () {
 
       _cb = cb
       drain()
-    }
+    },
+    _state: state
   }
 }
