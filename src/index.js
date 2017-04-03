@@ -70,8 +70,16 @@ module.exports = function () {
   }
 
   function result (value, k) {
+    var called = false
     return function (err, result) {
+      if (called) {
+        log('result(' + err + (err ? '' : ',' + result) + '), called multiple times, ignoring this call')
+        drain()
+        return
+      }
+
       log('result(' + err + (err ? '' : ',' + result) + ')')
+      called = true
       lent--
 
       if (err) {

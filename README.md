@@ -92,6 +92,7 @@ Properties
   6.3 all available values have been borrowed and  all results have been sourced.
 7. For N values available for borrowing, it takes N successful borrowers and 1
    extra lend call to close the lender.
+8. If a borrower calls its `cb` multiple times, all subsequent calls after the first will be ignored.
 
 Debugging
 =========
