@@ -145,27 +145,23 @@ module.exports = function () {
     log('reading')
 
     reading = true
+
+    // Prop 3:
+    deferred.push(borrower)
+
     read(abort, function (end, value) {
       reading = false
       log('reading done')
 
       if (end) {
         log('source ended')
-
         last = i; ended = end
-
-        // Prop 3:
-        // Prop 6.3: All results may not have been sourced,
-        // defer the borrower
-        deferred.push(borrower)
-
         return drain()
       }
 
       var k = i++
-      log('lending value ' + k + ': ' + value)
-      lent++
-      borrower(null, value, result(value, k))
+      log('delegating value ' + k + ': ' + value)
+      delegated.push({value: value, k: k})
 
       // Prop 3: Ensure all borrowers that called lend while
       // we were reading are processed

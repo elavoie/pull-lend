@@ -1,6 +1,6 @@
 {
   "name": "pull-lend",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "Lends one value at a time from a stream. Re-lends in case of errors.",
   "main": "src/index.js",
   "directories": {
