@@ -217,6 +217,7 @@ module.exports = function () {
           // by the source
           processAllDeferred(err)
 
+          if (_cb) _cb(err) // Make sure the pending callback completes
           if (cb) return cb(err)
         })
         return
