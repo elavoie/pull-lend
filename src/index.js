@@ -41,6 +41,11 @@ module.exports = function () {
         // Propagate closing event
         cb(ended)
       }
+    } else if (j >= last && ended) {
+      // Prop 3:
+      // Prop 6.3: We are done sinking results,
+      // make sure there are no pending borrowers
+      processAllDeferred()
     }
   }
 
