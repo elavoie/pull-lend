@@ -177,8 +177,6 @@ module.exports = function () {
   function lend (borrower) {
     log('lend([' + (typeof borrower) + '])')
 
-    if (!canBorrow(borrower)) return
-
     // Prop 5: relend the value of a previously missing result
     if (delegated.length > 0) {
       var job = delegated.shift()
@@ -187,6 +185,8 @@ module.exports = function () {
       borrower(null, job.value, result(job.value, job.k))
       return
     }
+
+    if (!canBorrow(borrower)) return
 
     // Prop 1: read a new value, triggered by a lend
     readSourceValue(borrower)
